@@ -9,7 +9,7 @@ const events = [
   { id: "1", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/tulum.jpg"), description: "Disfruta del mejor Jazz en vivo con artistas internacionales. Habrá food trucks, talleres y sorpresas para toda la familia. ¡No te lo pierdas!" },
   { id: "2", title: "Feria Gastronómica", date: "18 Nov 2025", location: "bacalar", image: require("../assets/images/tulum.jpg"), description: "Explora sabores de todo el mundo en nuestra feria gastronómica. Degustaciones, chefs invitados y concursos de cocina. Ideal para toda la familia." },
   { id: "3", title: "Concierto Rock", date: "25 Nov 2025", location: "Cancún", image: require("../assets/images/tulum.jpg"), description: "Una noche de rock inolvidable con bandas locales e internacionales. Ven con tus amigos y disfruta de la energía del escenario. Compra tus boletos anticipados." },
-  { id: "4", title: "Concierto Rock", date: "25 Nov 2025", location: "Cancún", image: require("../assets/images/tulum.jpg"), description: "Una noche de rock inolvidable con bandas locales e internacionales. Ven con tus amigos y disfruta de la energía del escenario. Compra tus boletos anticipados." },
+  { id: "4", title: "Exposición de Arte", date: "30 Nov 2025", location: "Galería Central", image: require("../assets/images/tulum.jpg"), description: "Una noche de rock inolvidable con bandas locales e internacionales. Ven con tus amigos y disfruta de la energía del escenario. Compra tus boletos anticipados." },
 ];
 
 export default function EventDetails() {
