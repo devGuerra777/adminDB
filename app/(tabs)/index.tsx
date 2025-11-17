@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,32 +10,60 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 
-
-// LA APLICACION EMPEIZA AQUI
-
+import { useRouter } from "expo-router";
+import { supabase } from "../libs/supabase";
 
 const { width } = Dimensions.get("window");
-import { useRouter } from "expo-router";
-// Locaciones populares
-const popularLocations = [
-  { id: "1", name: "Bacalar", image: require("../../assets/images/bacalar.jpg") },
-  { id: "2", name: "Cancún", image: require("../../assets/images/cancun.jpg") },
-  { id: "3", name: "Chichén Itzá", image: require("../../assets/images/chichenitza.jpg") },
-  { id: "4", name: "Tulum", image: require("../../assets/images/tulum.jpg") },
-];
-
-// Eventos cercanos
-const nearbyEvents = [
-  { id: "1", name: "Festival del Chocolate", date: "12 Nov 2025", image: require("../../assets/images/bacalar.jpg") },
-  { id: "2", name: "Concierto Playa Caribe", date: "15 Nov 2025", image: require("../../assets/images/cancun.jpg") },
-  { id: "3", name: "Exposición Maya", date: "18 Nov 2025", image: require("../../assets/images/chichenitza.jpg") },
-  { id: "4", name: "Torneo de Kayak", date: "20 Nov 2025", image: require("../../assets/images/tulum.jpg") },
-];
 
 export default function HomeScreen() {
-   const router = useRouter(); // 🔹 esto te da el router
+  const router = useRouter();
+
+  const [locations, setLocations] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const BASE_URL =
+    "https://qnwekduwzooiuusbgmfj.supabase.co/storage/v1/object/public/events/";
+
+  // 🔥 Cargar locaciones y eventos desde Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+
+      // Locaciones
+      const { data: locData, error: locError } = await supabase
+        .from("locations")
+        .select("*");
+
+      if (locError) console.log("ERROR cargando locaciones:", locError);
+
+      // Eventos cercanos
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .select("*");
+
+      if (eventError) console.log("ERROR cargando eventos:", eventError);
+
+      setLocations(locData || []);
+      setEvents(eventData || []);
+      setLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text>Cargando contenido...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* Buscador */}
@@ -49,43 +77,58 @@ export default function HomeScreen() {
 
       {/* Locaciones Populares */}
       <Text style={styles.sectionTitle}>Locaciones Populares</Text>
+
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={popularLocations}
+        data={locations}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            
-              onPress={() => router.push(`/locationEvents?location=${item.name}`)}// ← navegación
-          >
-            <Image source={item.image} style={styles.cardImage} />
-            <View style={styles.cardOverlay}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const fullImage = BASE_URL + item.image_url;
+
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                router.push(`/locationEvents?location=${item.name}`)
+              }
+            >
+              <Image source={{ uri: fullImage }} style={styles.cardImage} />
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         contentContainerStyle={{ paddingHorizontal: 20 }}
       />
 
-
       {/* Eventos Cercanos */}
-      <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Eventos Cercanos</Text>
+      <Text style={[styles.sectionTitle, { marginTop: 40 }]}>
+        Eventos Cercanos
+      </Text>
+
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={nearbyEvents}
+        data={events}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.eventCard}>
-            <Image source={item.image} style={styles.eventImage} />
-            <View style={styles.eventOverlay}>
-              <Text style={styles.eventTitle}>{item.name}</Text>
-              <Text style={styles.eventDate}>{item.date}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const fullImage = BASE_URL + item.image_url;
+
+          return (
+            <TouchableOpacity
+              style={styles.eventCard}
+              onPress={() => router.push(`/eventDetails?id=${item.id}`)}
+            >
+              <Image source={{ uri: fullImage }} style={styles.eventImage} />
+              <View style={styles.eventOverlay}>
+                <Text style={styles.eventTitle}>{item.title}</Text>
+                <Text style={styles.eventDate}>{item.date}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       />
     </ScrollView>
@@ -132,18 +175,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
   },
-  cardImage: {
-    width: "100%",
-    height: "100%",
-  },
+  cardImage: { width: "100%", height: "100%" },
   cardOverlay: {
     position: "absolute",
     bottom: 0,
     width: "100%",
     padding: 15,
     backgroundColor: "rgba(0,0,0,0.4)",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
   },
   cardTitle: {
     color: "#fff",
@@ -162,27 +200,16 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
   },
-  eventImage: {
-    width: "100%",
-    height: "100%",
-  },
+  eventImage: { width: "100%", height: "100%" },
   eventOverlay: {
     position: "absolute",
     bottom: 0,
     width: "100%",
     padding: 15,
     backgroundColor: "rgba(0,0,0,0.35)",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
   },
-  eventTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  eventDate: {
-    color: "#fff",
-    fontSize: 14,
-    marginTop: 3,
-  },
+  eventTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  eventDate: { color: "#fff", fontSize: 14, marginTop: 3 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
+
