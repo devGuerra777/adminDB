@@ -1,5 +1,5 @@
 // app/locationEvents.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,29 +8,49 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "../app/libs/supabase";
 
 const { width } = Dimensions.get("window");
-
-// Eventos inventados con ubicación
-const allEvents = [
-  { id: "1", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/bacalar.jpg") },
-  { id: "2", title: "Feria Gastronómica", date: "18 Nov 2025", location: "Cancún", image: require("../assets/images/cancun.jpg") },
-  { id: "3", title: "Concierto Rock", date: "25 Nov 2025", location: "Tulum", image: require("../assets/images/tulum.jpg") },
-  { id: "4", title: "Concierto Maya", date: "20 Nov 2025", location: "Chichén Itzá", image: require("../assets/images/chichenitza.jpg") },
-  { id: "5", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/bacalar.jpg") },
-  { id: "6", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/bacalar.jpg") },
-  { id: "7", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/bacalar.jpg") },
-  { id: "8", title: "Festival de Jazz", date: "12 Nov 2025", location: "Bacalar", image: require("../assets/images/bacalar.jpg") },
-];
 
 export default function LocationEvents() {
   const router = useRouter();
   const { location } = useLocalSearchParams<{ location: string }>();
-  const events = allEvents.filter((e) => e.location === location);
+
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!location) return;
+
+    const fetchEvents = async () => {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("location", location);
+
+      if (error) console.log("ERROR cargando eventos:", error);
+
+      setEvents(data || []);
+      setLoading(false);
+    };
+
+    fetchEvents();
+  }, [location]);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text>Cargando eventos...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -41,20 +61,26 @@ export default function LocationEvents() {
           data={events}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() => router.push(`/eventDetails?id=${item.id}`)}
-            >
-              <Image source={item.image} style={styles.image} />
-              <View style={styles.overlay} />
-              <View style={styles.info}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.date}>{item.date}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const fullImageUrl = `https://qnwekduwzooiuusbgmfj.supabase.co/storage/v1/object/public/events/${item.image_url}`;
+
+            return (
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() => router.push(`/eventDetails?id=${item.id}`)}
+              >
+                <Image source={{ uri: fullImageUrl }} style={styles.image} />
+
+                <View style={styles.overlay} />
+
+                <View style={styles.info}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={styles.date}>{item.date}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
     </SafeAreaView>
@@ -72,7 +98,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 30,
     fontWeight: "800",
-    marginTop: 20 ,
+    marginTop: 20,
     marginHorizontal: 20,
     marginBottom: 20,
     color: "#111",
@@ -90,19 +116,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 20,
-  },
+  image: { width: "100%", height: "100%", borderRadius: 20 },
   overlay: {
     position: "absolute",
     bottom: 0,
     width: "100%",
     height: "50%",
     backgroundColor: "rgba(0,0,0,0.35)",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
   },
   info: {
     position: "absolute",
@@ -114,17 +134,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 20,
     fontWeight: "800",
-    marginBottom: 4,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
   },
   date: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",
-    textShadowColor: "rgba(0,0,0,0.4)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
+
